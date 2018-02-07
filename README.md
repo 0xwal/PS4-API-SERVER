@@ -10,18 +10,28 @@ use [CTurt's PS4 SDK from xvortex's repository](https://github.com/xvortex/ps4-p
 then follow the instructions on how to add the sdk path to your environment.
 
 ## Usage
-
+```c
 char sendCommand(char command, void* args);
+```
 
 commands:
+
     * 'a' attach to game process ( eboot.bin ) and the process will continued.
+    
     * 'c' continue the process.
+    
     * 'd' detach the process.
+    
     * 's' suspend the process.
+    
     * 'u' resume the process.
+    
     * 'k' kill the process (seems not works)
+    
     * 'n' send notification with text.
+    
     * 'r' read memory.
+    
     * 'w' write memory.
 
 args:
