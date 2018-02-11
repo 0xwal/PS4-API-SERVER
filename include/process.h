@@ -45,6 +45,19 @@
 #define	WCONTINUED	4	/* Report a job control continued process. */
 #define	WNOWAIT	8	/* Poll only. Don't delete the proc entry. */
 
+/* Argument structure for PT_VM_ENTRY. */
+struct ptrace_vm_entry {
+	int		pve_entry;	/* Entry number used for iteration. */
+	int		pve_timestamp;	/* Generation number of VM map. */
+	unsigned long		pve_start;	/* Start VA of range. */
+	unsigned long		pve_end;	/* End VA of range (incl). */
+	unsigned long		pve_offset;	/* Offset in backing object. */
+	unsigned int		pve_prot;	/* Protection of memory range. */
+	unsigned int		pve_pathlen;	/* Size of path. */
+	long		pve_fileid;	/* File ID. */
+	uint32_t	pve_fsid;	/* File system ID. */
+	char		*pve_path;	/* Path name of object. */
+};
 
 struct rusage {
 	struct timeval ru_utime;	/* user time used */
@@ -147,11 +160,17 @@ int getProcess(const char* procName)
 {
     return getAllProcess(procName, NULL);
 }
-int wait4(int wpid, int *status, int options, struct	rusage *rusage){
-	return syscall(7, wpid, status, options, rusage);
+int wait4(int pid, int *status, int options, struct	rusage *rusage){
+	return syscall(7, pid, status, options, rusage);
 }
 int __ptrace(int req, int pid, void* addr, int data) {
 	return syscall(26, req, pid, addr, data);
+}
+int processSingleStep(int pid){
+	return __ptrace(PT_STEP, pid, NULL, NULL);
+}
+int processClearStep(int pid){
+	return __ptrace(PT_CLEARSTEP, pid, NULL, NULL);
 }
 int processContinue(int pid, void* address){
 	return __ptrace(PT_CONTINUE, pid, address, NULL);
@@ -189,7 +208,9 @@ int processAttach(int pid) {
 int processDetach(int pid) {
 	return __ptrace(PT_DETACH, pid, NULL, NULL);
 }
-
+int processgetVMTimeStamp(int pid){
+	return __ptrace(PT_VM_TIMESTAMP, pid, NULL, NULL);
+}
 int processReadBytes(int pid, void* offset, void* buffer, size_t len) {
 	struct __ptrace_io_desc pt_desc;
 	pt_desc.piod_op = PIOD_READ_D;

@@ -3,9 +3,12 @@
 #define MAX_RECEIVE_LENGTH 1024
 #define DEFAULT_PROCESS "eboot.bin"
 
+
 #define LENGTH_IS_NOT_CORRECT -2
 #define NO_PAYLOAD_RECEIVED -3
 #define READ_WRITE_FAILED -4
+#define UNKNOWN_COMMAND -5
+
 
 typedef struct command{
 	char commandChar;
@@ -14,11 +17,9 @@ typedef struct command{
 } command_s;
 
 typedef struct client_io{
-
     char commandChar;
     unsigned int length;
     unsigned long int address;
-
 } client_io_s;
 
 typedef struct clientReplyDate{
@@ -92,9 +93,8 @@ void readerHandler(const  char* in, unsigned int inDataLength)
         goto exitMe;
     }
 
-    clientReply.returnData = (char*)calloc(cmdLine.length+1, 1);
+    clientReply.returnData = (char*)calloc(cmdLine.length + 1, 1);
     clientReply.datalength = cmdLine.length;
-
     if (readMemory(attachedPid, (void*)cmdLine.address, clientReply.returnData, cmdLine.length) < 0)
     {
         clientReply.code = READ_WRITE_FAILED;
@@ -109,8 +109,11 @@ void attachHandler(const  char* in, unsigned int inDataLength)
 {
     int procPid = getProcess(DEFAULT_PROCESS);
     int result = -1;
-	if (procPid != -1)
+    errno = 0;
+    int isAlreadyAttached = processgetVMTimeStamp(procPid);
+	if (isAlreadyAttached == -1 && procPid != -1)
 		result = processAttach(procPid);
+    result = (isAlreadyAttached != -1 || (result == -1 && errno == 16)) ? 0 : result;
     clientReplyDate_s clientReply = {result, 0, 0};
     replyToClient(clientSockFd, &clientReply);
 }
@@ -118,7 +121,7 @@ void detachHandler(const  char* in, unsigned int inDataLength)
 {
     int result = -1;
 	int pid = attachedPid;
-	if (pid!=-1 || pid != 0)
+	if (pid < 1)
 		result = processDetach(pid);
     clientReplyDate_s clientReply = {result, 0, 0};
     replyToClient(clientSockFd, &clientReply);
@@ -127,7 +130,7 @@ void suspendHandler(const  char* in, unsigned int inDataLength)
 {
 	int result = -1;
 	int pid = attachedPid;
-	if (pid !=-1 || pid != 0)
+	if (pid < 1)
 		result = processSuspend(pid);
     clientReplyDate_s clientReply = {result, 0, 0};
     replyToClient(clientSockFd, &clientReply);
@@ -136,7 +139,7 @@ void resumeHandler(const  char* in, unsigned int inDataLength)
 {
 	int result = -1;
 	int pid = attachedPid;
-	if (pid !=-1 || pid != 0)
+	if (pid < 1)
 		result = processResume(pid);
     clientReplyDate_s clientReply = {result, 0, 0};
     replyToClient(clientSockFd, &clientReply);
@@ -145,7 +148,7 @@ void killHandler(const  char* in, unsigned int inDataLength)
 {
 	int result = -1;
 	int pid = attachedPid;
-	if (pid !=-1 || pid != 0)
+	if (pid < 1)
 		result = processKill(pid);
     clientReplyDate_s clientReply = {result, 0, 0};
     replyToClient(clientSockFd, &clientReply);
@@ -154,7 +157,7 @@ void continueHandler(const  char* in, unsigned int inDataLength)
 {
 	int result = -1;
 	int pid = attachedPid;
-	if (pid !=-1 || pid != 0){
+	if (pid < 1){
 		struct reg rg;
 		processGetRegs(pid, &rg);
 		result = processContinue(pid, (void*)rg.r_rip);
@@ -163,17 +166,35 @@ void continueHandler(const  char* in, unsigned int inDataLength)
     replyToClient(clientSockFd, &clientReply);
 }
 void notfiyHandler(const  char* in, unsigned int inDataLength){
-	NOTIFY((in + 1));
+	void* commandEntry = (void*)in + 1;
+    int notificationType = *(int*)commandEntry;
+    char* text = commandEntry+sizeof(int);
+    NOTIFYT(notificationType, text);
+    clientReplyDate_s clientReply = {0, 0, 0};
+    replyToClient(clientSockFd, &clientReply);
 }
+
 command_s commands[] = {
         {'w', sizeof(client_io_s),  writerHandler},
         {'r', sizeof(client_io_s), readerHandler},
-        {'a', 5, attachHandler},
+        {'a', 1, attachHandler},
         {'d', 1, detachHandler},
 		{'s', 1, suspendHandler},
 		{'u', 1, resumeHandler},
 		{'k', 1, killHandler},
 		{'c', 1, continueHandler},
-		{'n', 2, notfiyHandler},
+		{'n', 5, notfiyHandler},
+        
 };
 int lenOfCommands = sizeof(commands)/sizeof(commands[0]);
+
+void unknownCommandHandler()
+{
+    clientReplyDate_s clientReply = {UNKNOWN_COMMAND, 0, 0};
+    replyToClient(clientSockFd, &clientReply);
+}
+void quitCommandHandler()
+{
+    clientReplyDate_s clientReply = {0, 0, 0};
+    replyToClient(clientSockFd, &clientReply);
+}

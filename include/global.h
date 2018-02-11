@@ -1,10 +1,10 @@
-#define NOTIFY(format, ...)\
+#define NOTIFYT(type, format, ...)\
 	do {\
 		char bufferForTheSocket[512];\
 		sprintf(bufferForTheSocket, format, ##__VA_ARGS__);\
-		strcat(bufferForTheSocket, "\n\n\n\n\n\n");\
-		sceSysUtilSendSystemNotificationWithText(0x81, bufferForTheSocket);\
+		sceSysUtilSendSystemNotificationWithText(type, bufferForTheSocket);\
 	} while(0)
+#define NOTIFY(format, ...) NOTIFYT(222, format, ##__VA_ARGS__)
 
 
 int countChars(char* source, char c )

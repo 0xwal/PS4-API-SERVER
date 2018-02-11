@@ -4,7 +4,7 @@
 #include "include/sock.h"
 #include "include/process.h"
 #include "include/commandHandlers.h"
-
+#define VERSION "1.0"
 
 int _main(void) {
 	initKernel();
@@ -12,40 +12,48 @@ int _main(void) {
 	initNetwork();
 	initSysUtil();
 	if (initSockets())
-			NOTIFY("PS4API By BISOON STARTED\n");
+			NOTIFY("PS4API By BISOON STARTED v%s\n", VERSION);
 	else{
-		NOTIFY("PS4API: Failed to run.\n");
+		NOTIFY("PS4API: Failed to run on PORT [%d], try again later\n", SERVER_PORT);
+		closeSockets();
+		return 1;
 	}
+
 	kexec(kernelPayload, NULL);
 	struct sockaddr_in clientStruc;
-
-
+	command_s *localCommands = commands;
+	int localCommandsLength = lenOfCommands;
+	int gotUnknownCommand = 1;
 	for ( ;; ) {
-		char bufferOfClient[MAX_RECEIVE_LENGTH] = {0};
-		command_s *localCommands = commands;
-		int localCommandsLength = lenOfCommands;
+		
 		clientSockFd = acceptClient(&clientStruc);
 		while (1) {
-			int lenOfRecievedData = receiveFromClient(clientSockFd, bufferOfClient, MAX_RECEIVE_LENGTH);
-			if (lenOfRecievedData == 0)//Client Disconnected ?
+			char bufferOfClient[MAX_RECEIVE_LENGTH] = {0};
+			int lenOfReceivedData = receiveFromClient(clientSockFd, bufferOfClient, MAX_RECEIVE_LENGTH);
+			if (lenOfReceivedData < 1)//Client Disconnected ?
 				break;
 
 			if (bufferOfClient[0] == 'q')
 			{
 				closeSocket(clientSockFd);
+				quitCommandHandler();
 				break;
 			}
-			for (size_t i = 0; i < localCommandsLength; i++) {
-		        if(
-					localCommands[i].commandChar == bufferOfClient[0] &&
-					localCommands[i].minLength <= lenOfRecievedData  &&
-					localCommands[i].handler != NULL
-				)
+			for (size_t i = 0; i < localCommandsLength; i++) 
+			{
+		    	if(localCommands[i].commandChar == bufferOfClient[0] &&
+					localCommands[i].minLength <= lenOfReceivedData  &&
+					localCommands[i].handler != NULL)
 		        {
-		            localCommands[i].handler(bufferOfClient, lenOfRecievedData);
+		            localCommands[i].handler(bufferOfClient, lenOfReceivedData);
+					gotUnknownCommand = 0;
 					break;
 		        }
 		    }
+			if (gotUnknownCommand){
+				unknownCommandHandler();
+			}
+			gotUnknownCommand = 1;
 		}
 	}
 	closeSockets();

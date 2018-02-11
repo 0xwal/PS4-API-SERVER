@@ -4,6 +4,9 @@
 #define SERVER_PORT 9090
 #define BACK_LOG 1
 #undef LOG
+
+#define PORT_RANGE_POSSIBILITY 3
+
 int logSock = -1;
 int serverSockFd = -1;
 int clientSockFd;
@@ -33,11 +36,11 @@ void closeLog()
 {
     sceNetSocketClose(logSock);
 }
-void initServer()
+void initServer(int port)
 {
 	struct sockaddr_in serverSocket;
 	serverSocket.sin_family = AF_INET;
-	serverSocket.sin_port = sceNetHtons(SERVER_PORT);
+	serverSocket.sin_port = sceNetHtons(port);
 	serverSocket.sin_addr.s_addr = IN_ADDR_ANY;
 	memset(serverSocket.sin_zero, 0, sizeof(serverSocket.sin_zero));
 	serverSocket.sin_len = sizeof(serverSocket);
@@ -66,8 +69,15 @@ int initSockets()
 	#else
 		#define PRINTS(...)
 	#endif
-	initServer();
-	return serverSockFd;
+	int severPort = SERVER_PORT;
+	for(int i = 0; i < PORT_RANGE_POSSIBILITY; i++)
+	{
+		initServer(severPort);
+		if (serverSockFd > 0)
+			break;
+		severPort += 1;
+	}
+	return serverSockFd > 0;
 }
 void closeSockets()
 {
@@ -92,5 +102,5 @@ int sendToClient(int clientfd, const char* buffer, int length)
 
 int receiveFromClient(int clientfd, char* buffer, int length)
 {
-	return sceNetRecv(clientfd, buffer, length, MSG_WAITALL);
+	return sceNetRecv(clientfd, buffer, length, 0);
 }
