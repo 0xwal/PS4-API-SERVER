@@ -117,7 +117,6 @@ struct __ptrace_io_desc {
 	void *piod_addr;	/* parent offset */
 	size_t piod_len;	/* request length */
 };
-int attachedPid;
 int getAllProcess(const char* targetProcess, int (*callBack)(char* pname, int pid))
 {
 	int names[] = {1, 14, 0};
@@ -149,9 +148,9 @@ int getAllProcess(const char* targetProcess, int (*callBack)(char* pname, int pi
 		skipDupProcess = pid;
 		char* name = (char*)(processStructure + 447);
         if ((targetProcess != NULL && strcmp(targetProcess, name) == 0))
-                return pid;
+            return pid;
 		if (callBack != NULL && callBack(name, pid))
-            break;
+            return pid;
 	}
 	free(data);
 	return -1;
@@ -159,6 +158,19 @@ int getAllProcess(const char* targetProcess, int (*callBack)(char* pname, int pi
 int getProcess(const char* procName)
 {
     return getAllProcess(procName, NULL);
+}
+int getProcessName(int pid, char* dist){
+	int names[] = {1, 14, 1, pid}; //nametomib kern.proc.pid
+	int namesLength = sizeof(names) / sizeof(names[0]);
+	unsigned long int lengthOfOldValue;
+	void* dump = malloc(lengthOfOldValue);
+	int sysCtlReturn = sysctl(names, namesLength, dump, &lengthOfOldValue, NULL, NULL);
+	if (sysCtlReturn == -1)
+		return -1;
+	char* procName = (char*)(dump + 0x1BF);
+	strcpy(dist, procName);
+	free(dump);
+	return sysCtlReturn;
 }
 int wait4(int pid, int *status, int options, struct	rusage *rusage){
 	return syscall(7, pid, status, options, rusage);
@@ -191,11 +203,8 @@ int processGetRegs(int pid, struct reg* rg){
 int processAttach(int pid) {
 
 	int res = __ptrace(PT_ATTACH, pid, NULL, NULL);
-	if (res != 0){
-		attachedPid = -1;
+	if (res != 0)
 		return res;
-	}
-	attachedPid = pid;
 	int status = 0;
 	wait4(pid, &status, WUNTRACED, NULL);
 
@@ -210,6 +219,9 @@ int processDetach(int pid) {
 }
 int processgetVMTimeStamp(int pid){
 	return __ptrace(PT_VM_TIMESTAMP, pid, NULL, NULL);
+}
+int getVMEntry(int pid, struct ptrace_vm_entry* entryStructure){
+	return __ptrace(PT_VM_ENTRY, pid, entryStructure, NULL);
 }
 int processReadBytes(int pid, void* offset, void* buffer, size_t len) {
 	struct __ptrace_io_desc pt_desc;

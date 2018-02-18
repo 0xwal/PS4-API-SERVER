@@ -35,6 +35,9 @@ $(ODIR)/%.o: $(SDIR)/%.s
 $(ODIR):
 	@mkdir $@
 
+s: clean $(TARGET)
+	nc -w 3 192.168.100.8 9020 < $(TARGET)
+
 .PHONY: clean
 
 clean:

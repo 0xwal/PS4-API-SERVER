@@ -17,3 +17,7 @@ int countChars(char* source, char c )
             count++;
     return count;
 }
+
+int cmp(char* val1, char* val2){
+    return strcmp(val1, val2) == 0;
+}

@@ -1,7 +1,10 @@
 #define MAX_PAYLOAD_LENGTH 512
 #define MAX_READ_LENGTH 1024 //NOT APPLIED FOR THE READER YET
 #define MAX_RECEIVE_LENGTH 1024
-#define DEFAULT_PROCESS "eboot.bin"
+
+#define GAME_PROCESS_1 "eboot.bin"
+#define GAME_PROCESS_2 "default_mp.elf"
+#define GAME_PROCESS_3 "default.elf"
 
 
 #define LENGTH_IS_NOT_CORRECT -2
@@ -9,6 +12,7 @@
 #define READ_WRITE_FAILED -4
 #define UNKNOWN_COMMAND -5
 
+int attachedPid;
 
 typedef struct command{
 	char commandChar;
@@ -92,10 +96,10 @@ void readerHandler(const  char* in, unsigned int inDataLength)
         clientReply.code = LENGTH_IS_NOT_CORRECT;
         goto exitMe;
     }
-
-    clientReply.returnData = (char*)calloc(cmdLine.length + 1, 1);
+    int lengthToAllocate = cmdLine.length + 1;
+    clientReply.returnData = (char*)calloc(lengthToAllocate, 1);
     clientReply.datalength = cmdLine.length;
-    if (readMemory(attachedPid, (void*)cmdLine.address, clientReply.returnData, cmdLine.length) < 0)
+    if (readMemory(attachedPid, (void*)cmdLine.address, clientReply.returnData, clientReply.datalength) < 0)
     {
         clientReply.code = READ_WRITE_FAILED;
         goto exitMe;
@@ -105,14 +109,21 @@ void readerHandler(const  char* in, unsigned int inDataLength)
     replyToClient(clientSockFd, &clientReply);
     free(clientReply.returnData);
 }
+
+int matchProcess(char* name, int pid){
+    if (cmp(name, GAME_PROCESS_1) || cmp(name, GAME_PROCESS_2) || cmp(name, GAME_PROCESS_3))
+        return true;
+    return false;
+}
 void attachHandler(const  char* in, unsigned int inDataLength)
 {
-    int procPid = getProcess(DEFAULT_PROCESS);
+    int pid = getAllProcess(NULL, matchProcess);
+    attachedPid = pid;
     int result = -1;
     errno = 0;
-    int isAlreadyAttached = processgetVMTimeStamp(procPid);
-	if (isAlreadyAttached == -1 && procPid != -1)
-		result = processAttach(procPid);
+    int isAlreadyAttached = processgetVMTimeStamp(pid);
+	if (isAlreadyAttached == -1 && pid != -1)
+		result = processAttach(pid);
     result = (isAlreadyAttached != -1 || (result == -1 && errno == 16)) ? 0 : result;
     clientReplyDate_s clientReply = {result, 0, 0};
     replyToClient(clientSockFd, &clientReply);
@@ -121,7 +132,7 @@ void detachHandler(const  char* in, unsigned int inDataLength)
 {
     int result = -1;
 	int pid = attachedPid;
-	if (pid < 1)
+	if (pid > 1)
 		result = processDetach(pid);
     clientReplyDate_s clientReply = {result, 0, 0};
     replyToClient(clientSockFd, &clientReply);
@@ -130,7 +141,7 @@ void suspendHandler(const  char* in, unsigned int inDataLength)
 {
 	int result = -1;
 	int pid = attachedPid;
-	if (pid < 1)
+	if (pid > 1)
 		result = processSuspend(pid);
     clientReplyDate_s clientReply = {result, 0, 0};
     replyToClient(clientSockFd, &clientReply);
@@ -139,7 +150,7 @@ void resumeHandler(const  char* in, unsigned int inDataLength)
 {
 	int result = -1;
 	int pid = attachedPid;
-	if (pid < 1)
+	if (pid > 1)
 		result = processResume(pid);
     clientReplyDate_s clientReply = {result, 0, 0};
     replyToClient(clientSockFd, &clientReply);
@@ -148,7 +159,7 @@ void killHandler(const  char* in, unsigned int inDataLength)
 {
 	int result = -1;
 	int pid = attachedPid;
-	if (pid < 1)
+	if (pid > 1)
 		result = processKill(pid);
     clientReplyDate_s clientReply = {result, 0, 0};
     replyToClient(clientSockFd, &clientReply);
@@ -157,7 +168,7 @@ void continueHandler(const  char* in, unsigned int inDataLength)
 {
 	int result = -1;
 	int pid = attachedPid;
-	if (pid < 1){
+	if (pid > 1){
 		struct reg rg;
 		processGetRegs(pid, &rg);
 		result = processContinue(pid, (void*)rg.r_rip);

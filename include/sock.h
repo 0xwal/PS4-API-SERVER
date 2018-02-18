@@ -90,10 +90,13 @@ void closeSocket(int sockFd)
 {
 	sceNetSocketClose(sockFd);
 }
+void abortSendRecv(int sockFd){
+	sceNetSocketAbort(sockFd, 1 | 2);
+}
 int acceptClient(struct sockaddr_in* clientSocket)
 {
 	unsigned int sizeOfSock = sizeof(struct sockaddr_in);
-	return sceNetAccept(serverSockFd, (struct sockaddr*)&clientSocket, &sizeOfSock);
+	return sceNetAccept(serverSockFd, (struct sockaddr*)clientSocket, &sizeOfSock);
 }
 int sendToClient(int clientfd, const char* buffer, int length)
 {
@@ -103,4 +106,8 @@ int sendToClient(int clientfd, const char* buffer, int length)
 int receiveFromClient(int clientfd, char* buffer, int length)
 {
 	return sceNetRecv(clientfd, buffer, length, 0);
+}
+void clientIp(struct in_addr* inAddr, char* out)
+{
+	sceNetInetNtop(AF_INET, inAddr, out, /*sizeof(struct in_addr)*/ 16);
 }
