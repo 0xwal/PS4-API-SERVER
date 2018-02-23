@@ -42,9 +42,9 @@ void* clientHandler(void* args)
 
 			if (bufferOfClient[0] == 'q')
 			{
+				quitCommandHandler();
 				closeSocket(locClientSocketFd);
 				NOTIFY(MSG_CLIENT_DISCONNECED, clientIP);
-				quitCommandHandler();
 				scePthreadExit(NULL);
 			}
 			for (size_t i = 0; i < localCommandsLength; i++) 
