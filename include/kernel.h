@@ -2,12 +2,11 @@
 #include "ps4.h"
 
 #define Inline static inline __attribute__((always_inline))
-#define	KERN_XFAST_SYSCALL 0x30EB30
-#define KERN_PROCESS_ASLR 0x2862D6
-#define KERN_PRISON_0 0xF26010
-#define KERN_ROOTVNODE 0x206D250
-#define KERN_PTRACE_CHECK_1 0xAC2F1
-#define KERN_PTRACE_CHECK_2 0xAC6A2
+#define	KERN_XFAST_SYSCALL 0x3095D0
+#define KERN_PROCESS_ASLR 0x1BA559
+#define KERN_PRISON_0 0x10399B0
+#define KERN_ROOTVNODE 0x21AFA30
+#define KERN_PTRACE_CHECK 0x17D2C1
 
 #define X86_CR0_WP (1 << 16)
 
@@ -122,9 +121,8 @@ int kernelPayload(struct thread *td, void* uap) {
 	uint64_t cr0 = readCr0();
 	writeCr0(cr0 & ~X86_CR0_WP);
 
-	// Disable ptrace checks
-	ptrKernel[KERN_PTRACE_CHECK_1] = 0xEB;
-	*(uint16_t*)&ptrKernel[KERN_PTRACE_CHECK_2] = 0x27EB;
+	// Disable ptrace check
+	ptrKernel[KERN_PTRACE_CHECK] = 0xEB;
 
 	// Disable process aslr
 	*(uint16_t*)&ptrKernel[KERN_PROCESS_ASLR] = 0x9090;
