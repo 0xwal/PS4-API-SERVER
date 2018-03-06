@@ -14,6 +14,7 @@ then follow the instructions on how to add the sdk path to your environment.
 char sendCommand(char command, void* args);
 
 commands:
+
     * 'a' attach to game process ( eboot.bin ) and the process will continued.
     * 'c' continue the process.
     * 'd' detach the process.
