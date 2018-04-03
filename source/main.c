@@ -74,7 +74,7 @@ int init(){
 	
 	if (initSockets())
 	{
-		NOTIFY("PS4API By BISOON STARTED v%s\n", VERSION);
+		NOTIFY("PS4API 4.55 By BISOON STARTED v%s\n", VERSION);
 		return 1;
 	}
 	else

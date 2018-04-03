@@ -3,7 +3,7 @@
 #define LOG_PORT 9023
 #define SERVER_PORT 9090
 #define BACK_LOG 1
-#define LOG
+#undef LOG
 
 #define PORT_RANGE_POSSIBILITY 3
 
