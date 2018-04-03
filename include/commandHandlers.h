@@ -55,6 +55,7 @@ void replyToClient(int clientfd, const clientReplyDate_s* clientData)
 }
 void writerHandler(const char* in, unsigned int inDataLength)
 {
+    processAttach(attachedPid);
     client_io_s cmdLine = *(client_io_s*)in; // length & address, beyond that is the payload
     clientReplyDate_s clientReply = {0, 0, 0};
     if (cmdLine.length < 1)
@@ -84,11 +85,13 @@ void writerHandler(const char* in, unsigned int inDataLength)
     }
     clientReply.code = 0;
     exitMe:
+    processDetach(attachedPid);
     replyToClient(clientSockFd, &clientReply);
 }
 
 void readerHandler(const  char* in, unsigned int inDataLength)
 {
+    processAttach(attachedPid);
     client_io_s cmdLine = *(client_io_s*)in;
     clientReplyDate_s clientReply = {0, 0, 0};
     if (cmdLine.length < 1)
@@ -99,14 +102,17 @@ void readerHandler(const  char* in, unsigned int inDataLength)
     int lengthToAllocate = cmdLine.length + 1;
     clientReply.returnData = (char*)calloc(lengthToAllocate, 1);
     clientReply.datalength = cmdLine.length;
+    errno = 0;
     if (readMemory(attachedPid, (void*)cmdLine.address, clientReply.returnData, clientReply.datalength) < 0)
     {
         clientReply.code = READ_WRITE_FAILED;
+        PRINTS("process: %d, address: %lx - malloc: %p - [errno=%d]", attachedPid, cmdLine.address, clientReply.returnData, errno);
         goto exitMe;
     }
 
     exitMe:
     replyToClient(clientSockFd, &clientReply);
+    processDetach(attachedPid);
     free(clientReply.returnData);
 }
 
@@ -126,6 +132,7 @@ void attachHandler(const  char* in, unsigned int inDataLength)
 		result = processAttach(pid);
     result = (isAlreadyAttached != -1 || (result == -1 && errno == 16)) ? 0 : result;
     clientReplyDate_s clientReply = {result, 0, 0};
+    processDetach(attachedPid);
     replyToClient(clientSockFd, &clientReply);
 }
 void detachHandler(const  char* in, unsigned int inDataLength)

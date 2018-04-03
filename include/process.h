@@ -200,14 +200,16 @@ int processKill(int pid)
 int processGetRegs(int pid, struct reg* rg){
 	return __ptrace(PT_GETREGS, pid, (void*)rg, NULL);
 }
-int processAttach(int pid) {
+int processDetach(int);
+
+int processAttach(int pid)
+{
 
 	int res = __ptrace(PT_ATTACH, pid, NULL, NULL);
 	if (res != 0)
 		return res;
 	int status = 0;
 	wait4(pid, &status, WUNTRACED, NULL);
-
 	struct reg rg;
 	processGetRegs(pid, &rg);
 	processContinue(pid, (void*)rg.r_rip);

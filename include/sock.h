@@ -1,9 +1,9 @@
 
-#define LOG_IP IP(192, 168, 100, 2)
+#define LOG_IP IP(192, 168, 0, 14)
 #define LOG_PORT 9023
 #define SERVER_PORT 9090
 #define BACK_LOG 1
-#undef LOG
+#define LOG
 
 #define PORT_RANGE_POSSIBILITY 3
 
