@@ -210,9 +210,9 @@ int processAttach(int pid)
 		return res;
 	int status = 0;
 	wait4(pid, &status, WUNTRACED, NULL);
-	struct reg rg;
-	processGetRegs(pid, &rg);
-	processContinue(pid, (void*)rg.r_rip);
+	//struct reg rg;
+	//processGetRegs(pid, &rg);
+	//processContinue(pid, (void*)rg.r_rip);
 	return res;
 }
 
