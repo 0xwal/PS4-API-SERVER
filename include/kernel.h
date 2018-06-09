@@ -2,17 +2,21 @@
 #include "ps4.h"
 
 #define Inline static inline __attribute__((always_inline))
-/*#define	KERN_XFAST_SYSCALL 0x30EB30
+/*
+#define	KERN_XFAST_SYSCALL 0x30EB30
 #define KERN_PROCESS_ASLR 0x2862D6
 #define KERN_PRISON_0 0xF26010
 #define KERN_ROOTVNODE 0x206D250
 #define KERN_PTRACE_CHECK_1 0xAC2F1
-#define KERN_PTRACE_CHECK_2 0xAC6A2*/
-#define	KERN_XFAST_SYSCALL 0x3095D0
-#define KERN_PROCESS_ASLR 0x1BA559
-#define KERN_PRISON_0 0x10399B0
-#define KERN_ROOTVNODE 0x21AFA30
-#define KERN_PTRACE_CHECK 0x17D2C1
+#define KERN_PTRACE_CHECK_2 0xAC6A2
+*/
+
+
+#define	KERN_XFAST_SYSCALL 0x1C0
+#define KERN_PROCESS_ASLR 0x194875
+#define KERN_PRISON_0 0x10986A0
+#define KERN_ROOTVNODE 0x22C1A70
+#define KERN_PTRACE_CHECK 0x30D9AA
 
 #define X86_CR0_WP (1 << 16)
 
@@ -63,8 +67,54 @@ struct thread {
 	void *useless;
 	struct proc *td_proc;
 };
+/*
+int kernelPayload(struct thread *td, void* uap) {
+	uint8_t* ptrKernel = getKernelBase();
+	struct ucred* cred = td->td_proc->p_ucred;
+	struct filedesc* fd = td->td_proc->p_fd;
 
-int kernelPayload(struct thread *td, void* uap);
+	// Escalate privileges
+	cred->cr_uid = 0;
+	cred->cr_ruid = 0;
+	cred->cr_rgid = 0;
+	cred->cr_groups[0] = 0;
+
+	// Escape sandbox
+	void** prison0 = (void**)&ptrKernel[KERN_PRISON_0];
+	void** rootvnode = (void**)&ptrKernel[KERN_ROOTVNODE];
+	cred->cr_prison = *prison0;
+	fd->fd_rdir = fd->fd_jdir = *rootvnode;
+
+	void *td_ucred = *(void **)(((char *)td) + 304); // p_ucred == td_ucred
+
+	// sceSblACMgrIsSystemUcred
+	uint64_t *sonyCred = (uint64_t *)(((char *)td_ucred) + 96);
+	*sonyCred = 0xffffffffffffffff;
+
+	// sceSblACMgrGetDeviceAccessType
+	uint64_t *sceProcType = (uint64_t *)(((char *)td_ucred) + 88);
+	*sceProcType = 0x3801000000000013; // Max access
+
+	// sceSblACMgrHasSceProcessCapability
+	uint64_t *sceProcCap = (uint64_t *)(((char *)td_ucred) + 104);
+	*sceProcCap = 0xffffffffffffffff; // Sce Process
+
+	// Disable write protection
+	uint64_t cr0 = readCr0();
+	writeCr0(cr0 & ~X86_CR0_WP);
+
+	// Disable ptrace checks
+	ptrKernel[KERN_PTRACE_CHECK_1] = 0xEB;
+	*(uint16_t*)&ptrKernel[KERN_PTRACE_CHECK_2] = 0x27EB;
+
+	// Disable process aslr
+	*(uint16_t*)&ptrKernel[KERN_PROCESS_ASLR] = 0x9090;
+
+	// Enable write protection
+	writeCr0(cr0);
+
+	return 0;
+}*/
 
 Inline uint64_t readCr0(void) {
 	uint64_t cr0;
@@ -103,7 +153,7 @@ int kernelPayload(struct thread *td, void* uap) {
 	cred->cr_rgid = 0;
 	cred->cr_groups[0] = 0;
 
-	// Escape sandbo
+	// Escape sandbox
 	void** prison0 = (void**)&ptrKernel[KERN_PRISON_0];
 	void** rootvnode = (void**)&ptrKernel[KERN_ROOTVNODE];
 	cred->cr_prison = *prison0;

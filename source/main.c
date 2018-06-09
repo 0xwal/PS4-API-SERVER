@@ -67,6 +67,7 @@ void* clientHandler(void* args)
 int init(){
 	initKernel();
 	initLibc();
+
 	kexec(kernelPayload, NULL);
 	initNetwork();
 	initSysUtil();
@@ -74,7 +75,7 @@ int init(){
 	
 	if (initSockets())
 	{
-		NOTIFY("PS4API 4.55 By BISOON STARTED v%s\n", VERSION);
+		NOTIFY("PS4API 5.05 By BISOON STARTED v%s\n", VERSION);
 		return 1;
 	}
 	else
@@ -88,7 +89,7 @@ int _main(void) {
 	
 	if (!init())
 		return 1;
-	PRINTS("STARTED");
+
 	struct sockaddr_in clientStruct;
 	int clientSocketMonitor = -1;
 	for (INFINITE) 

@@ -210,9 +210,9 @@ int processAttach(int pid)
 		return res;
 	int status = 0;
 	wait4(pid, &status, WUNTRACED, NULL);
-	//struct reg rg;
-	//processGetRegs(pid, &rg);
-	//processContinue(pid, (void*)rg.r_rip);
+	/*struct reg rg;
+	processGetRegs(pid, &rg);
+	processContinue(pid, (void*)rg.r_rip);*/
 	return res;
 }
 
@@ -222,7 +222,7 @@ int processDetach(int pid) {
 int processgetVMTimeStamp(int pid){
 	return __ptrace(PT_VM_TIMESTAMP, pid, NULL, NULL);
 }
-int getVMEntry(int pid, struct ptrace_vm_entry* entryStructure){
+int processgetVMEntry(int pid, struct ptrace_vm_entry* entryStructure){
 	return __ptrace(PT_VM_ENTRY, pid, entryStructure, NULL);
 }
 int processReadBytes(int pid, void* offset, void* buffer, size_t len) {
